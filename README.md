@@ -1,9 +1,37 @@
 # GKE Cluster routing internet traffic through basic NAT
-This set of scripts creates a Google Cloud Container Engine cluster that 
-routes all outbound internet traffic. Traffic heading for the kubernetes master is routed at a higher priority through the default internet gateway. 
-through a NAT instance. 
 
-#### How it works in a nutshell
+ - External services like hosted databases often have firewall rules which require a static IP address
+ - This example routes all outbound Kubernetes traffic through a single NAT compute instance with a static IP 
+ - Traffic heading for the kubernetes master is routed at a higher priority through the default internet gateway
+ 
+## Quickstart
+
+### Prerequisites 
+
+1. Updated gcloud sdk 
+2. A Project in Google Cloud in which you want to deploy this cluster 
+3. Authenticated to google cloud
+
+### Create
+
+Firstly, in `gke-with-nat-route.jinja` and `gke-with-nat-route.yml` replace any references to `europe-west2` and `europe-west2-a` with the desired zone/region.
+
+```
+gcloud deployment-manager deployments create gke-with-nat --config gke-with-nat-route.yml
+```
+
+### Delete
+
+```
+gcloud compute routes delete master-route -q                 
+gcloud compute routes delete gke-cluster-route-through-nat -q
+gcloud container clusters delete nat-gke-cluster -q    
+gcloud compute instances delete nat-vm -q                         
+gcloud compute firewall-rules delete nat-vm-firewall  -q 
+gcloud deployment-manager deployments delete gke-with-nat -q        
+```    
+
+## How it works in a nutshell
 
 1. Creates a network
 2. Creates a subnet for the cluster 
@@ -14,29 +42,4 @@ through a NAT instance.
 7. Creates the route from the cluster to the master for instances with tag, route-through-nat
 8. Creates the NAT route from the cluster to the NAT for all destinations at a lower priority than the master route above for instances with tag route-through-nat
 
-#### Creating the cluster 
 
-###### Prerequisites 
-
-1. Updated gcloud sdk 
-2. Updated kubectl cli
-3. A Project in Google Cloud in which you want to deploy this cluster 
-3. Authenticated to google cloud
-
-###### Creating the network, subnets, nat, routes, firewall rules and gke cluster 
-
-    $ git clone https://www.github.com/johnlabarge/gke-nat-example.git
-    $ cd gke-nat-example
-    $ ./create
-
-This also runs a quick test for you by
-
-1. installing curl on the machine 
-2. curling a well known website 
-3. copying the captured traffic (tcpdump) logs from the Nat computer to 
-the local directory.
-
-#### Deleting the Cluster
-###### Deleting the network, subnets, nat, routes, firewall rules and gke cluster 
-
-`$ ./delete`

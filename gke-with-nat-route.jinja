@@ -25,24 +25,24 @@ resources:
   properties:
     network: $(ref.gke-nat-network.selfLink)
     ipCidrRange: 172.16.0.0/12
-    region: us-central1
+    region: europe-west2
 ########## NAT Subnet ##########
 - name: nat-subnet
   type: compute.v1.subnetwork
   properties: 
     network: $(ref.gke-nat-network.selfLink)
     ipCidrRange: 10.1.1.0/24
-    region: us-central1
+    region: europe-west2
 ########## NAT VM ##########
 - name: nat-vm
   type: compute.v1.instance 
   properties:
-    zone: us-central1-b
+    zone: europe-west2-a
     canIpForward: true
     tags:
       items:
       - nat-to-internet
-    machineType: https://www.googleapis.com/compute/v1/projects/{{ env["project"] }}/zones/us-central1-b/machineTypes/f1-micro
+    machineType: https://www.googleapis.com/compute/v1/projects/{{ env["project"] }}/zones/europe-west2-a/machineTypes/f1-micro
     disks:
       - deviceName: boot
         type: PERSISTENT
@@ -108,7 +108,7 @@ resources:
       nodeConfig:
         tags:
         - route-through-nat
-    zone: us-central1-b
+    zone: europe-west2-a
 ########## GKE MASTER ROUTE ##########
 - name: master-route
   type: compute.v1.route
