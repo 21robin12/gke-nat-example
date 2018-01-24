@@ -4,4 +4,4 @@ resources:
 - name: gke-with-nat-route
   type: gke-with-nat-route.jinja
   properties:
-    zone: europe-west2-a              
+    zone: europe-west2-a
