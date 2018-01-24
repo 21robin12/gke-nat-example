@@ -25,7 +25,7 @@ gcloud deployment-manager deployments create devops-gke-with-nat --config gke-wi
 
 ### Test external IP address
 
-Run two `ubuntu` images in separate command windows. In the Google Cloud dashboard, check that these have been assigned to different nodes.
+Run two `ubuntu` images in separate command windows. In the Google Cloud dashboard, check that these have been assigned to different nodes. If not, run `ubuntu3`, `ubuntu4` etc. until at least 2 are on separate nodes.
 
 ```
 kubectl run -i --tty ubuntu1 --image=ubuntu --restart=Never -- sh
