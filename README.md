@@ -14,21 +14,26 @@
 
 ### Create
 
-Firstly, in `gke-with-nat-route.jinja` and `gke-with-nat-route.yml` replace any references to `europe-west2` and `europe-west2-a` with the desired zone/region.
+1. In `gke-with-nat-route.jinja` and `gke-with-nat-route.yml` replace any references to `europe-west2` and `europe-west2-a` with the desired zone/region
+2. To give the deployment a unique name (so that multiple clusters can be configured using this approach), find and replace all on `devops` in `gke-with-nat-route.jinja`. `devops` is just the name I've used for my cluster.
+3. Edit any cluster settings such as `machineType: g1-small` in `gke-with-nat-route.jinja` to the desired value
+4. Run the following `gcloud` command - note that this takes a few minutes, and during that time the deployment can be monitored through the Google Cloud web UI:
 
 ```
-gcloud deployment-manager deployments create gke-with-nat --config gke-with-nat-route.yml
+gcloud deployment-manager deployments create devops-gke-with-nat --config gke-with-nat-route.yml
 ```
 
 ### Delete
 
+Make sure to replace `devops` in the following commands before running:
+
 ```
-gcloud compute routes delete master-route -q                 
-gcloud compute routes delete gke-cluster-route-through-nat -q
-gcloud container clusters delete nat-gke-cluster -q    
-gcloud compute instances delete nat-vm -q                         
-gcloud compute firewall-rules delete nat-vm-firewall  -q 
-gcloud deployment-manager deployments delete gke-with-nat -q        
+gcloud compute routes delete devops-master-route -q                 
+gcloud compute routes delete gke-devops-cluster-route-through-nat -q
+gcloud container clusters delete devops-cluster -q --zone europe-west2-a
+gcloud compute instances delete devops-nat-vm -q --zone europe-west2-a
+gcloud compute firewall-rules delete devops-nat-vm-firewall -q 
+gcloud deployment-manager deployments delete devops-gke-with-nat -q        
 ```    
 
 ## How it works in a nutshell
@@ -41,5 +46,3 @@ gcloud deployment-manager deployments delete gke-with-nat -q
 6. Creates the GKE cluster in the cluster's subnet created from step 2 with tag route-through-nat
 7. Creates the route from the cluster to the master for instances with tag, route-through-nat
 8. Creates the NAT route from the cluster to the NAT for all destinations at a lower priority than the master route above for instances with tag route-through-nat
-
-

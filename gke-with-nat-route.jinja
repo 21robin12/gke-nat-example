@@ -14,27 +14,27 @@
 #
 resources:
 ######## Network ############
-- name: gke-nat-network
+- name: gke-devops-nat-network
   type: compute.v1.network
   properties: 
     autoCreateSubnetworks: false
 ######### Subnets ##########
 ######### For Cluster #########
-- name: gke-cluster-subnet 
+- name: gke-devops-cluster-subnet 
   type: compute.v1.subnetwork
   properties:
-    network: $(ref.gke-nat-network.selfLink)
+    network: $(ref.gke-devops-nat-network.selfLink)
     ipCidrRange: 172.16.0.0/12
     region: europe-west2
 ########## NAT Subnet ##########
-- name: nat-subnet
+- name: devops-nat-subnet
   type: compute.v1.subnetwork
   properties: 
-    network: $(ref.gke-nat-network.selfLink)
+    network: $(ref.gke-devops-nat-network.selfLink)
     ipCidrRange: 10.1.1.0/24
     region: europe-west2
 ########## NAT VM ##########
-- name: nat-vm
+- name: devops-nat-vm
   type: compute.v1.instance 
   properties:
     zone: europe-west2-a
@@ -51,8 +51,8 @@ resources:
         initializeParams:
           sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20150423
     networkInterfaces:
-    - network: projects/{{ env["project"] }}/global/networks/gke-nat-network
-      subnetwork: $(ref.nat-subnet.selfLink)
+    - network: projects/{{ env["project"] }}/global/networks/gke-devops-nat-network
+      subnetwork: $(ref.devops-nat-subnet.selfLink)
       accessConfigs:
       - name: External NAT
         type: ONE_TO_ONE_NAT
@@ -74,7 +74,7 @@ resources:
           nohup tcpdump -e -l -i eth0 > /tmp/nat.txt &
           echo 1 | tee /proc/sys/net/ipv4/ip_forward
 ########## FIREWALL RULES FOR NAT VM ##########
-- name: nat-vm-firewall 
+- name: devops-nat-vm-firewall 
   type: compute.v1.firewall
   properties: 
     allowed:
@@ -82,8 +82,8 @@ resources:
       ports: []
     sourceTags: 
     - route-through-nat
-    network: $(ref.gke-nat-network.selfLink)
-- name: nat-vm-ssh
+    network: $(ref.gke-devops-nat-network.selfLink)
+- name: devops-nat-vm-ssh
   type: compute.v1.firewall
   properties: 
     allowed:
@@ -91,46 +91,58 @@ resources:
       ports: [22]
     sourceRanges: 
     - 0.0.0.0/0
-    network: $(ref.gke-nat-network.selfLink)
+    network: $(ref.gke-devops-nat-network.selfLink)
 ########## GKE CLUSTER CREATION ##########
-- name: nat-gke-cluster
+- name: devops-cluster
   type: container.v1.cluster
   metadata: 
    dependsOn:
-   - gke-nat-network 
-   - gke-cluster-subnet
+   - gke-devops-nat-network 
+   - gke-devops-cluster-subnet
   properties: 
     cluster: 
-      name: nat-gke-cluster 
+      name: devops-cluster
       initialNodeCount: 3
-      network: gke-nat-network
-      subnetwork: gke-cluster-subnet
+      network: gke-devops-nat-network
+      subnetwork: gke-devops-cluster-subnet
       nodeConfig:
         tags:
         - route-through-nat
+        machineType: g1-small
+        imageType: UBUNTU
+        diskSizeGb: 100
+        preemptible: false
+        oauthScopes:
+        - https://www.googleapis.com/auth/compute
+        - https://www.googleapis.com/auth/devstorage.read_only
+        - https://www.googleapis.com/auth/logging.write
+        - https://www.googleapis.com/auth/monitoring
+        - https://www.googleapis.com/auth/servicecontrol
+        - https://www.googleapis.com/auth/service.management.readonly
+        - https://www.googleapis.com/auth/trace.append
     zone: europe-west2-a
 ########## GKE MASTER ROUTE ##########
-- name: master-route
+- name: devops-master-route
   type: compute.v1.route
   properties:
-    destRange: $(ref.nat-gke-cluster.endpoint)
-    network: $(ref.gke-nat-network.selfLink)
+    destRange: $(ref.devops-cluster.endpoint)
+    network: $(ref.gke-devops-nat-network.selfLink)
     nextHopGateway: projects/{{ env["project"] }}/global/gateways/default-internet-gateway
     priority: 100
     tags:
     - route-through-nat
 ########## NAT ROUTE ##########
-- name: gke-cluster-route-through-nat
+- name: gke-devops-cluster-route-through-nat
   metadata: 
     dependsOn:
-    - nat-gke-cluster  
-    - gke-nat-network
+    - devops-cluster
+    - gke-devops-nat-network
   type: compute.v1.route
   properties: 
-    network: $(ref.gke-nat-network.selfLink)
+    network: $(ref.gke-devops-nat-network.selfLink)
     destRange: 0.0.0.0/0
     description: "route all other traffic through nat"
-    nextHopInstance: $(ref.nat-vm.selfLink)
+    nextHopInstance: $(ref.devops-nat-vm.selfLink)
     tags:
     - route-through-nat
     priority: 800
