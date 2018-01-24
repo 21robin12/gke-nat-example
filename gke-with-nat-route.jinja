@@ -14,23 +14,23 @@
 #
 resources:
 ######## Network ############
-- name: gke-devops-nat-network
+- name: devops-nat-network
   type: compute.v1.network
   properties: 
     autoCreateSubnetworks: false
 ######### Subnets ##########
 ######### For Cluster #########
-- name: gke-devops-cluster-subnet 
+- name: devops-cluster-subnet 
   type: compute.v1.subnetwork
   properties:
-    network: $(ref.gke-devops-nat-network.selfLink)
+    network: $(ref.devops-nat-network.selfLink)
     ipCidrRange: 172.16.0.0/12
     region: europe-west2
 ########## NAT Subnet ##########
 - name: devops-nat-subnet
   type: compute.v1.subnetwork
   properties: 
-    network: $(ref.gke-devops-nat-network.selfLink)
+    network: $(ref.devops-nat-network.selfLink)
     ipCidrRange: 10.1.1.0/24
     region: europe-west2
 ########## NAT VM ##########
@@ -51,7 +51,7 @@ resources:
         initializeParams:
           sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20150423
     networkInterfaces:
-    - network: projects/{{ env["project"] }}/global/networks/gke-devops-nat-network
+    - network: projects/{{ env["project"] }}/global/networks/devops-nat-network
       subnetwork: $(ref.devops-nat-subnet.selfLink)
       accessConfigs:
       - name: External NAT
@@ -82,7 +82,7 @@ resources:
       ports: []
     sourceTags: 
     - route-through-nat
-    network: $(ref.gke-devops-nat-network.selfLink)
+    network: $(ref.devops-nat-network.selfLink)
 - name: devops-nat-vm-ssh
   type: compute.v1.firewall
   properties: 
@@ -91,20 +91,21 @@ resources:
       ports: [22]
     sourceRanges: 
     - 0.0.0.0/0
-    network: $(ref.gke-devops-nat-network.selfLink)
+    network: $(ref.devops-nat-network.selfLink)
 ########## GKE CLUSTER CREATION ##########
 - name: devops-cluster
   type: container.v1.cluster
   metadata: 
    dependsOn:
-   - gke-devops-nat-network 
-   - gke-devops-cluster-subnet
+   - devops-nat-network 
+   - devops-cluster-subnet
   properties: 
     cluster: 
       name: devops-cluster
       initialNodeCount: 3
-      network: gke-devops-nat-network
-      subnetwork: gke-devops-cluster-subnet
+      network: devops-nat-network
+      subnetwork: devops-cluster-subnet
+      initialClusterVersion": "1.8.6-gke.0",
       nodeConfig:
         tags:
         - route-through-nat
@@ -126,20 +127,20 @@ resources:
   type: compute.v1.route
   properties:
     destRange: $(ref.devops-cluster.endpoint)
-    network: $(ref.gke-devops-nat-network.selfLink)
+    network: $(ref.devops-nat-network.selfLink)
     nextHopGateway: projects/{{ env["project"] }}/global/gateways/default-internet-gateway
     priority: 100
     tags:
     - route-through-nat
 ########## NAT ROUTE ##########
-- name: gke-devops-cluster-route-through-nat
+- name: devops-cluster-route-through-nat
   metadata: 
     dependsOn:
     - devops-cluster
-    - gke-devops-nat-network
+    - devops-nat-network
   type: compute.v1.route
   properties: 
-    network: $(ref.gke-devops-nat-network.selfLink)
+    network: $(ref.devops-nat-network.selfLink)
     destRange: 0.0.0.0/0
     description: "route all other traffic through nat"
     nextHopInstance: $(ref.devops-nat-vm.selfLink)

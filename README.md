@@ -23,13 +23,34 @@
 gcloud deployment-manager deployments create devops-gke-with-nat --config gke-with-nat-route.yml
 ```
 
+### Test external IP address
+
+Run two `ubuntu` images in separate command windows. In the Google Cloud dashboard, check that these have been assigned to different nodes.
+
+```
+kubectl run -i --tty ubuntu1 --image=ubuntu --restart=Never -- sh
+kubectl run -i --tty ubuntu2 --image=ubuntu --restart=Never -- sh
+```
+
+From each command window, check that the external IP address is the same:
+
+```
+apt-get update
+apt-get install curl -y
+curl ipinfo.io/ip
+```
+
+Back in the Google Cloud dashboard, check that the IP printed in the previous step matches that of the `nat-vm` instance (in this case `1.2.3.4`). Change the type of this address from Ephemeral to Static.
+
+![GCP dashboard](gcp.png)
+
 ### Delete
 
 Make sure to replace `devops` in the following commands before running:
 
 ```
 gcloud compute routes delete devops-master-route -q                 
-gcloud compute routes delete gke-devops-cluster-route-through-nat -q
+gcloud compute routes delete devops-cluster-route-through-nat -q
 gcloud container clusters delete devops-cluster -q --zone europe-west2-a
 gcloud compute instances delete devops-nat-vm -q --zone europe-west2-a
 gcloud compute firewall-rules delete devops-nat-vm-firewall -q 
