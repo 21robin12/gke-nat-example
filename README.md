@@ -17,10 +17,10 @@
 1. In `gke-with-nat-route.jinja` and `gke-with-nat-route.yml` replace any references to `europe-west2` and `europe-west2-a` with the desired zone/region
 2. To give the deployment a unique name (so that multiple clusters can be configured using this approach), find and replace all on `devops` in `gke-with-nat-route.jinja`. `devops` is just the name I've used for my cluster.
 3. Edit any cluster settings such as `machineType: g1-small` in `gke-with-nat-route.jinja` to the desired value
-4. Run the following `gcloud` command - note that this takes a few minutes, and during that time the deployment can be monitored through the Google Cloud web UI:
+4. Replace `<DEPLOYMENT_NAME>` and run the following `gcloud` command - note that this takes a few minutes, and during that time the deployment can be monitored through the Google Cloud web UI:
 
 ```
-gcloud deployment-manager deployments create devops-gke-with-nat --config gke-with-nat-route.yml
+gcloud deployment-manager deployments create <DEPLOYMENT_NAME> --config gke-with-nat-route.yml
 ```
 
 ### Test external IP address
